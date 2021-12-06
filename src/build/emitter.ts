@@ -144,6 +144,8 @@ export function emitWebIdl(
     (i) => !!i.global
   );
 
+  const globals: string[] = []
+
   const allNonCallbackInterfaces = getElements(
     webidl.interfaces,
     "interface"
@@ -225,7 +227,9 @@ export function emitWebIdl(
     getParentsWithConstant
   );
 
-  return iterator ? emitES6DomIterators() : emit();
+  const body = iterator ? emitES6DomIterators() : emit();
+  const footer = "\n" + globals.join("\n");
+  return body + footer;
 
   function getTagNameToElementNameMap() {
     const htmlResult: Record<string, string> = {};
@@ -1134,7 +1138,14 @@ export function emitWebIdl(
     if (i.deprecated) {
       printer.printLine(`/** @deprecated */`);
     }
-    printer.printLine(`${prefix}var ${i.name}: {`);
+
+    if (prefix !== "") {
+      globals.push(`${prefix} var ${i.name}: ${i.name}Constructor`);
+
+      printer.printLine(`${prefix} interface ${i.name}Constructor {`);
+    } else {
+      printer.printLine(`var ${i.name}: {`);
+    }
     printer.increaseIndent();
 
     // TODO: To be more accurate, this should be `readonly prototype`
